@@ -1,52 +1,73 @@
 ---
 name: gitlab-issue-to-feishu-bug
-description: 将 GitLab Issue 登记为用户指定飞书多维表格中的 Bug 记录，支持用户优先的字段覆盖与留空、Issue 默认映射、多模块、预览、查重和确认后写入。用户说“把 issue 登记到飞书”“同步 Bug 管理”“将 GitLab bug 转成测试记录”或提供 GitLab Issue URL 要求登记时使用。
+description: 将 GitLab Issue 登记到用户指定的飞书 Bug 表，并为 Bug、需求、模块、MR、版本或用户描述生成飞书测试用例候选。支持 Bug+用例、仅 Bug、仅用例、覆盖补齐，多模块、用户字段覆盖与留空、实时 Schema 校验、查重、预览和确认后写入。用户说“把 issue 登记到飞书”“同步 Bug 管理”“为这个 Bug 生成测试用例”“补测试用例”“创建独立测试用例”或提供 GitLab Issue URL 要求登记时使用。
 ---
 
-# GitLab Issue 转飞书 Bug
+# GitLab Issue 与飞书测试资产
 
-将 GitLab Issue 作为默认数据源，将用户本次指定的飞书 Base 作为目标。
+把 GitLab Issue、需求说明、模块、MR、版本或用户描述转成用户本次指定飞书 Base 中的 Bug 和测试用例候选。
 
-## 优先级
+## 执行原则
 
-1. 用户本次命令决定字段值、留空字段、目标链接和执行范围。
-2. Skill 映射只在用户没有指定时提供默认值。
-3. 每个飞书业务字段均为可选。无法推导、存在冲突或缺少权限时留空，并在预览中说明。
-4. 仅当飞书 API 对实际写入字段存在类型或选项约束时，报告平台约束。
+1. 用户本次命令决定模式、目标链接、字段值、留空字段、用例数量和执行范围。
+2. Skill 只为用户未指定的内容提供默认值。
+3. 每个飞书业务字段均为可选；缺失、冲突或权限不足的字段保持为空，并在预览中说明。
+4. 候选生成、Schema 校验和查重先于写入；每一批写入都需要用户明确确认。
+5. 当前自动化范围是登记自动化状态与已有脚本路径。代码物化和执行属于后续阶段。
 
-不要为了补全字段而强制用户回答。用户说“留空”“不填”“忽略”时，使用 `--omit`；用户明确给值时使用对应覆盖参数。
+用户说“留空”“不填”“忽略”时加入 `omit`。用户明确给值时覆盖所有默认推导。
 
-## 运行输入
+## 选择模式
 
-- GitLab Issue URL：用于读取源 Issue。
-- 飞书 Base/Wiki URL：用于确定本次写入目标。
+- **仅 Bug**：用户只要求登记或同步 Issue。
+- **Bug + 测试用例**：用户要求登记 Issue 并生成对应测试用例；用例的 `对应BugID` 默认引用该 Issue。
+- **仅测试用例**：来源可以是 Bug、Issue、需求、模块、MR、版本或用户描述。独立用例的 `对应BugID` 保持为空。
+- **覆盖补齐**：读取现有用例后，针对缺失的正向、边界、异常、权限、状态流转、数据一致性或回归场景生成候选。
 
-缺少飞书 URL 时询问：“请提供本次写入的飞书 Base 或 Wiki 链接。”每次使用用户本次提供的链接。
+用户未说明时，根据动词选择最小范围：“登记 Bug”走仅 Bug；“生成测试用例”走仅测试用例；“登记并生成用例”走 Bug + 测试用例。
 
-## 默认映射
+## 必要输入
 
-- 状态：Issue `opened → 未解决`，`closed → 已关闭`。
-- 优先级：Issue 的 P0/P1/P2 标签。
-- 严重程度：同名标签；缺少时按 `P0 → 致命`、`P1 → 严重`、`P2 → 一般`。
-- bug模块：汇总标题 `[...]` 前缀与标签，写入全部可识别模块。
-- 提交人：当前飞书账号名称对应的 `openId`。
-- Bug描述、Issue 链接、BugID：Issue 标题、URL、完整引用。
+- 目标飞书 Base/Wiki URL：每次由用户提供；缺少时询问“请提供本次写入的飞书 Base 或 Wiki 链接。”
+- 来源：GitLab Issue URL 或足以描述测试对象的需求、模块、MR、版本、页面、接口等上下文。
 
-默认值、字段名和模块别名见 [references/mapping.md](references/mapping.md)。仅在处理映射或 Schema 差异时读取。
+Bug 流程需要 GitLab Issue URL。独立测试用例无需关联 Issue。
 
-## 执行
+## 渐进式路由
 
-1. 读取 [references/workflow.md](references/workflow.md)，获取实时 GitLab、飞书账号、表和字段数据。
-2. 将用户指定的覆盖项和留空项传给 `scripts/issue-to-bug-record.mjs`。
-3. 展示目标 Base/表、写入字段、用户覆盖、自动推导、留空字段、提示和查重结果。
-4. 在 `ready_for_confirmation: true` 时请求一次写入确认。
-5. 确认后立即再次查重；结果变化时重新预览。
-6. 创建时写入确认过的字段；更新时携带唯一 `record_id` 并只写确认过的最小差异。
-7. 写后读回变更字段并清理临时目录。
+### Bug 候选
+
+读取 [references/mapping.md](references/mapping.md) 了解字段映射；执行时读取 [references/workflow.md](references/workflow.md)。使用：
+
+```text
+scripts/issue-to-bug-record.mjs
+references/tcode-bug-profile.json
+```
+
+### 测试用例候选
+
+先读取 [references/test-case-generation.md](references/test-case-generation.md) 生成结构化计划；执行时读取 [references/test-case-workflow.md](references/test-case-workflow.md)。使用：
+
+```text
+scripts/test-case-plan-to-records.mjs
+references/tcode-test-case-profile.json
+```
+
+## 统一预览与确认
+
+预览至少展示：
+
+- 目标 Base 与表；
+- 模式、来源和候选数量；
+- 每条 Bug/用例的编号、描述、关键字段、推导依据和假设；
+- 用户覆盖、留空字段、Schema 差异与查重结果；
+- 自动化状态与脚本路径仅作为登记信息。
+
+只有 `ready_for_confirmation: true` 的候选可以请求确认。确认后立即再次查重；结果变化时重新预览。写后按返回的记录 ID 读回实际变更字段，并清理系统临时目录。
 
 ## 安全边界
 
-- 用户确认前仅生成候选数据。
-- Token、Cookie、Base URL、人员 ID 和记录 ID 只保留在本次进程或系统临时目录。
-- 写入目标和实际准备写入字段必须通过实时 Schema 校验。
-- `candidate_only: true` 与 `write_authorized: false` 表示尚未获得写入授权。
+- 用户确认前，输出保持 `candidate_only: true`、`write_authorized: false`。
+- Token、Cookie、Base URL、人员 ID、表 ID 和记录 ID 只保留在当前进程或系统临时目录。
+- 目标表与实际准备写入字段通过实时 Schema 校验。
+- 测试用例候选器只产生预览、候选记录与查重过滤器。

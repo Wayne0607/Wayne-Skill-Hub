@@ -11,7 +11,7 @@
 | `issue-to-pr` | 将已确认的 Issue 实现为聚焦的 PR/MR |
 | `ai-reviewer` | 对 PR/MR 发布可定位、可执行的代码评审意见 |
 | `ai-review-resolver` | 处理 AI 评审意见、提交修复并关闭讨论 |
-| `gitlab-issue-to-feishu-bug` | 将 GitLab Issue 映射到用户指定的飞书 Bug 管理表 |
+| `gitlab-issue-to-feishu-bug` | 将 GitLab Issue 映射到飞书 Bug 表，并生成 Bug 关联或独立测试用例 |
 
 `tcode-handoff-package-mate` 是协作编排层，配合中间四个原子 Skill 完成 Issue、实现、评审和评审修复流程。每个原子 Skill 也可以单独安装使用。
 
@@ -28,14 +28,15 @@
 
 - Issue、PR/MR 类 Skill 需要当前仓库及已认证的 `gh` 或 `glab`。
 - `tcode-handoff-package-mate` 默认从项目的 `TEAM.md` 获取身份和常设职责。
-- `gitlab-issue-to-feishu-bug` 需要 Node.js、`glab`、`lark-cli`，并在写入前请求用户确认。
+- `gitlab-issue-to-feishu-bug` 需要 Node.js、`glab`、`lark-cli`，并在写入前请求用户确认。当前测试用例自动化范围是登记状态与已有脚本路径。
 
 ## 校验
 
-飞书 Bug Skill 自带 Node.js 测试：
+飞书测试资产 Skill 自带两组 Node.js 测试：
 
 ```bash
 node skills/gitlab-issue-to-feishu-bug/scripts/issue-to-bug-record.test.mjs
+node skills/gitlab-issue-to-feishu-bug/scripts/test-case-plan-to-records.test.mjs
 ```
 
 仓库中的测试数据使用示例域名和虚拟账号，不包含真实 Token、人员 ID 或飞书 Base 链接。

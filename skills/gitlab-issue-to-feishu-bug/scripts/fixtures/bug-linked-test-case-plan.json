@@ -1,0 +1,53 @@
+{
+  "source": {
+    "kind": "bug",
+    "key": "acme/project#159",
+    "bug_id": "acme/project#159",
+    "module": "Tcode前端",
+    "priority": "P1",
+    "project_version": "v1.2.3"
+  },
+  "defaults": {
+    "case_type": "UI",
+    "execution_role": "测试人员"
+  },
+  "cases": [
+    {
+      "case_key": "long-version-tooltip",
+      "fields": {
+        "description": "超长版本号截断并悬停显示完整内容",
+        "nature": "边界值",
+        "preconditions": "项目存在超长版本号",
+        "steps": [
+          "进入项目详情页",
+          "查看版本标签",
+          "将鼠标移到截断文本上"
+        ],
+        "expected": [
+          "版本号显示省略号",
+          "悬停后展示完整版本号",
+          "相邻布局不被撑开"
+        ],
+        "scenario_tags": "回归；版本展示",
+        "automation_status": "待评估"
+      },
+      "generation_basis": [
+        "GitLab Issue 描述",
+        "版本标签交互"
+      ]
+    },
+    {
+      "case_key": "normal-version-no-truncation",
+      "fields": {
+        "description": "正常长度版本号保持完整显示",
+        "nature": "正向",
+        "steps": [
+          "进入项目详情页",
+          "查看正常长度版本号"
+        ],
+        "expected": "版本号完整显示且无多余省略号",
+        "automation_status": "待评估"
+      }
+    }
+  ]
+}

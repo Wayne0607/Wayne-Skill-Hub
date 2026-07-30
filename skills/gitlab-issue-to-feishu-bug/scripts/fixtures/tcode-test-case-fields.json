@@ -1,0 +1,79 @@
+{
+  "ok": true,
+  "data": {
+    "fields": [
+      { "name": "用例编号", "type": "text" },
+      { "name": "前置条件", "type": "text" },
+      { "name": "人工审核状态", "type": "text" },
+      { "name": "创建时间", "type": "datetime" },
+      { "name": "测试步骤", "type": "text" },
+      { "name": "审核人", "type": "text" },
+      { "name": "期望结果", "type": "text" },
+      {
+        "name": "测试性质",
+        "type": "select",
+        "multiple": false,
+        "options": [
+          { "name": "正向" },
+          { "name": "边界值" },
+          { "name": "异常处理" },
+          { "name": "正向+负向" },
+          { "name": "故障注入/回归" },
+          { "name": "契约回归" },
+          { "name": "数据对账" }
+        ]
+      },
+      { "name": "备注", "type": "text" },
+      { "name": "提交人", "type": "user", "multiple": false },
+      { "name": "测试数据", "type": "text" },
+      {
+        "name": "用例类型",
+        "type": "select",
+        "multiple": false,
+        "options": [
+          { "name": "API" },
+          { "name": "UI" },
+          { "name": "集成" },
+          { "name": "UI+API" },
+          { "name": "API+UI" },
+          { "name": "API+环境整形+UI" }
+        ]
+      },
+      { "name": "实际结果", "type": "text" },
+      {
+        "name": "状态",
+        "type": "select",
+        "multiple": false,
+        "options": [
+          { "name": "未解决" },
+          { "name": "修复中" },
+          { "name": "待验收" },
+          { "name": "已关闭" },
+          { "name": "待开始" }
+        ]
+      },
+      { "name": "用例自动化执行脚本路径", "type": "text" },
+      { "name": "所属模块", "type": "text" },
+      { "name": "用例描述(功能点)", "type": "text" },
+      { "name": "场景标签", "type": "text" },
+      {
+        "name": "优先级",
+        "type": "select",
+        "multiple": false,
+        "options": [
+          { "name": "P0" },
+          { "name": "P1" },
+          { "name": "P2" },
+          { "name": "" },
+          { "name": "测试人员" }
+        ]
+      },
+      { "name": "自动化状态", "type": "text" },
+      { "name": "测试项目版本(版本tag)", "type": "text" },
+      { "name": "执行环境", "type": "text" },
+      { "name": "执行角色", "type": "text" },
+      { "name": "对应BugID", "type": "text" },
+      { "name": "截图或视频", "type": "text" }
+    ]
+  }
+}

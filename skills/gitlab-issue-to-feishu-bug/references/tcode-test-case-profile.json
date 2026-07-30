@@ -1,0 +1,186 @@
+{
+  "profile_version": 1,
+  "profile_id": "tcode-test-case-management",
+  "table_name": "TCode 测试用例文档",
+  "business_key_semantic": "case_id",
+  "required_semantics": [],
+  "defaults": {
+    "status": "待开始",
+    "review_status": "待审核",
+    "automation_status": "待评估"
+  },
+  "source_kinds": [
+    "bug",
+    "issue",
+    "requirement",
+    "module",
+    "mr",
+    "release",
+    "manual"
+  ],
+  "fields": [
+    {
+      "semantic": "case_id",
+      "name": "用例编号",
+      "type": "text"
+    },
+    {
+      "semantic": "preconditions",
+      "name": "前置条件",
+      "type": "text"
+    },
+    {
+      "semantic": "review_status",
+      "name": "人工审核状态",
+      "type": "text"
+    },
+    {
+      "semantic": "created_at",
+      "name": "创建时间",
+      "type": "datetime"
+    },
+    {
+      "semantic": "steps",
+      "name": "测试步骤",
+      "type": "text"
+    },
+    {
+      "semantic": "reviewer",
+      "name": "审核人",
+      "type": "text"
+    },
+    {
+      "semantic": "expected",
+      "name": "期望结果",
+      "type": "text"
+    },
+    {
+      "semantic": "nature",
+      "name": "测试性质",
+      "type": "select",
+      "multiple": false,
+      "options": [
+        "正向",
+        "边界值",
+        "异常处理",
+        "正向+负向",
+        "故障注入/回归",
+        "契约回归",
+        "数据对账"
+      ]
+    },
+    {
+      "semantic": "note",
+      "name": "备注",
+      "type": "text"
+    },
+    {
+      "semantic": "submitter",
+      "name": "提交人",
+      "type": "user",
+      "multiple": false
+    },
+    {
+      "semantic": "test_data",
+      "name": "测试数据",
+      "type": "text"
+    },
+    {
+      "semantic": "case_type",
+      "name": "用例类型",
+      "type": "select",
+      "multiple": false,
+      "options": [
+        "API",
+        "UI",
+        "集成",
+        "UI+API",
+        "API+UI",
+        "API+环境整形+UI"
+      ]
+    },
+    {
+      "semantic": "actual_result",
+      "name": "实际结果",
+      "type": "text",
+      "phase": "execution"
+    },
+    {
+      "semantic": "status",
+      "name": "状态",
+      "type": "select",
+      "multiple": false,
+      "options": [
+        "未解决",
+        "修复中",
+        "待验收",
+        "已关闭",
+        "待开始"
+      ]
+    },
+    {
+      "semantic": "automation_script_path",
+      "name": "用例自动化执行脚本路径",
+      "type": "text",
+      "phase": "automation"
+    },
+    {
+      "semantic": "module",
+      "name": "所属模块",
+      "type": "text"
+    },
+    {
+      "semantic": "description",
+      "name": "用例描述(功能点)",
+      "type": "text"
+    },
+    {
+      "semantic": "scenario_tags",
+      "name": "场景标签",
+      "type": "text"
+    },
+    {
+      "semantic": "priority",
+      "name": "优先级",
+      "type": "select",
+      "multiple": false,
+      "options": [
+        "P0",
+        "P1",
+        "P2"
+      ]
+    },
+    {
+      "semantic": "automation_status",
+      "name": "自动化状态",
+      "type": "text",
+      "phase": "automation"
+    },
+    {
+      "semantic": "project_version",
+      "name": "测试项目版本(版本tag)",
+      "type": "text"
+    },
+    {
+      "semantic": "environment",
+      "name": "执行环境",
+      "type": "text"
+    },
+    {
+      "semantic": "execution_role",
+      "name": "执行角色",
+      "type": "text"
+    },
+    {
+      "semantic": "bug_id",
+      "name": "对应BugID",
+      "type": "text"
+    },
+    {
+      "semantic": "evidence",
+      "name": "截图或视频",
+      "type": "text",
+      "phase": "execution"
+    }
+  ]
+}

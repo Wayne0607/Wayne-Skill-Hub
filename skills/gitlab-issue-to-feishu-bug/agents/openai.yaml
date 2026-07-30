@@ -1,4 +1,4 @@
 interface:
-  display_name: "GitLab Issue 转飞书 Bug"
-  short_description: "从 Issue 自动映射字段并登记到用户指定的飞书 Base"
-  default_prompt: "Use $gitlab-issue-to-feishu-bug to register a GitLab Issue. Follow my field values and omissions before skill defaults, leave unavailable fields empty, ask for the target Feishu Base/Wiki URL when absent, preview and deduplicate, then write only after my explicit confirmation."
+  display_name: "GitLab Issue 与飞书测试资产"
+  short_description: "登记飞书 Bug，并生成关联或独立测试用例"
+  default_prompt: "Use $gitlab-issue-to-feishu-bug to register a GitLab Issue, generate Bug-linked test cases, or create standalone test cases. Follow my requested mode, fields, omissions, scope, and target Feishu Base/Wiki URL before skill defaults. Preview, validate the live schema, deduplicate, and write only after my explicit confirmation. Record automation metadata only; leave code materialization and execution for a later workflow."

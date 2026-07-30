@@ -1,0 +1,148 @@
+{
+  "ok": true,
+  "data": {
+    "fields": [
+      {
+        "name": "BugID(对应issue)",
+        "type": "text"
+      },
+      {
+        "name": "处理时间",
+        "type": "datetime"
+      },
+      {
+        "name": "Bug 工单群",
+        "type": "group_chat",
+        "multiple": true
+      },
+      {
+        "name": "备注",
+        "type": "text"
+      },
+      {
+        "name": "提交人",
+        "type": "user",
+        "multiple": false
+      },
+      {
+        "name": "提交Agent",
+        "type": "text"
+      },
+      {
+        "name": "状态",
+        "type": "select",
+        "multiple": false,
+        "options": [
+          {
+            "name": "未解决"
+          },
+          {
+            "name": "修复中"
+          },
+          {
+            "name": "待验收"
+          },
+          {
+            "name": "已关闭"
+          }
+        ]
+      },
+      {
+        "name": "bug模块",
+        "type": "select",
+        "multiple": true,
+        "options": [
+          {
+            "name": "Tcode平台后端"
+          },
+          {
+            "name": "Tcode前端"
+          },
+          {
+            "name": "TcodeSCA"
+          },
+          {
+            "name": "TcodeAudit"
+          },
+          {
+            "name": "TcodeVerify"
+          },
+          {
+            "name": "TcodeFix"
+          }
+        ]
+      },
+      {
+        "name": "Bug描述",
+        "type": "text"
+      },
+      {
+        "name": "issue链接",
+        "type": "text"
+      },
+      {
+        "name": "优先级",
+        "type": "select",
+        "multiple": false,
+        "options": [
+          {
+            "name": "P0"
+          },
+          {
+            "name": "P1"
+          },
+          {
+            "name": "P2"
+          }
+        ]
+      },
+      {
+        "name": "严重程度",
+        "type": "select",
+        "multiple": false,
+        "options": [
+          {
+            "name": "致命"
+          },
+          {
+            "name": "严重"
+          },
+          {
+            "name": "一般"
+          },
+          {
+            "name": "轻微"
+          },
+          {
+            "name": "建议优化"
+          }
+        ]
+      },
+      {
+        "name": "发现版本",
+        "type": "text"
+      },
+      {
+        "name": "处理人",
+        "type": "user",
+        "multiple": false
+      },
+      {
+        "name": "PR ID",
+        "type": "text"
+      },
+      {
+        "name": "建群按钮",
+        "type": "text"
+      },
+      {
+        "name": "处理Agent",
+        "type": "text"
+      },
+      {
+        "name": "截图或视频",
+        "type": "attachment"
+      }
+    ]
+  }
+}

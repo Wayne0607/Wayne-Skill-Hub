@@ -1,0 +1,4 @@
+interface:
+  display_name: "Issue to PR Workflow"
+  short_description: "Issue 驱动 PR：分析、实现并管理 Draft 到 Ready 的交付闭环"
+  default_prompt: "Use $issue-to-pr to process these issues end-to-end, creating each PR as a draft and marking it ready only after implementation and validation are complete."

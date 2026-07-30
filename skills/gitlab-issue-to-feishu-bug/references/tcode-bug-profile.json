@@ -1,0 +1,174 @@
+{
+  "profile_version": 1,
+  "profile_id": "tcode-bug-management",
+  "table_name": "TCode bug管理",
+  "business_key_semantic": "bug_id",
+  "status_by_issue_state": {
+    "opened": "未解决",
+    "closed": "已关闭"
+  },
+  "required_semantics": [],
+  "lifecycle_update_semantics": [
+    "status",
+    "module",
+    "priority",
+    "severity",
+    "handler",
+    "processed_at",
+    "handler_agent",
+    "pr_url"
+  ],
+  "severity_by_priority": {
+    "P0": "致命",
+    "P1": "严重",
+    "P2": "一般"
+  },
+  "module_aliases": {
+    "platform": "Tcode平台后端",
+    "平台": "Tcode平台后端",
+    "frontend": "Tcode前端",
+    "前端": "Tcode前端",
+    "tcodefrontend": "Tcode前端",
+    "backend": "Tcode平台后端",
+    "platformbackend": "Tcode平台后端",
+    "平台后端": "Tcode平台后端",
+    "tcode平台后端": "Tcode平台后端",
+    "sca": "TcodeSCA",
+    "tcodesca": "TcodeSCA",
+    "audit": "TcodeAudit",
+    "tcodeaudit": "TcodeAudit",
+    "verify": "TcodeVerify",
+    "tcodeverify": "TcodeVerify",
+    "fix": "TcodeFix",
+    "vulnfix": "TcodeFix",
+    "tcodefix": "TcodeFix"
+  },
+  "fields": [
+    {
+      "semantic": "bug_id",
+      "name": "BugID(对应issue)",
+      "type": "text"
+    },
+    {
+      "semantic": "processed_at",
+      "name": "处理时间",
+      "type": "datetime"
+    },
+    {
+      "semantic": "bug_chat",
+      "name": "Bug 工单群",
+      "type": "group_chat",
+      "multiple": true,
+      "write_mode": "separate"
+    },
+    {
+      "semantic": "note",
+      "name": "备注",
+      "type": "text"
+    },
+    {
+      "semantic": "submitter",
+      "name": "提交人",
+      "type": "user",
+      "multiple": false
+    },
+    {
+      "semantic": "submit_agent",
+      "name": "提交Agent",
+      "type": "text"
+    },
+    {
+      "semantic": "status",
+      "name": "状态",
+      "type": "select",
+      "multiple": false,
+      "options": [
+        "未解决",
+        "修复中",
+        "待验收",
+        "已关闭"
+      ]
+    },
+    {
+      "semantic": "module",
+      "name": "bug模块",
+      "type": "select",
+      "multiple": true,
+      "options": [
+        "Tcode平台后端",
+        "Tcode前端",
+        "TcodeSCA",
+        "TcodeAudit",
+        "TcodeVerify",
+        "TcodeFix"
+      ]
+    },
+    {
+      "semantic": "description",
+      "name": "Bug描述",
+      "type": "text"
+    },
+    {
+      "semantic": "issue_url",
+      "name": "issue链接",
+      "type": "text"
+    },
+    {
+      "semantic": "priority",
+      "name": "优先级",
+      "type": "select",
+      "multiple": false,
+      "options": [
+        "P0",
+        "P1",
+        "P2"
+      ]
+    },
+    {
+      "semantic": "severity",
+      "name": "严重程度",
+      "type": "select",
+      "multiple": false,
+      "options": [
+        "致命",
+        "严重",
+        "一般",
+        "轻微",
+        "建议优化"
+      ]
+    },
+    {
+      "semantic": "discovered_version",
+      "name": "发现版本",
+      "type": "text"
+    },
+    {
+      "semantic": "handler",
+      "name": "处理人",
+      "type": "user",
+      "multiple": false
+    },
+    {
+      "semantic": "pr_url",
+      "name": "PR ID",
+      "type": "text"
+    },
+    {
+      "semantic": "create_chat_button",
+      "name": "建群按钮",
+      "type": "text",
+      "write_mode": "never"
+    },
+    {
+      "semantic": "handler_agent",
+      "name": "处理Agent",
+      "type": "text"
+    },
+    {
+      "semantic": "evidence",
+      "name": "截图或视频",
+      "type": "attachment",
+      "write_mode": "separate"
+    }
+  ]
+}

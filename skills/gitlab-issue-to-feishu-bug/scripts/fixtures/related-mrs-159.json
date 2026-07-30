@@ -1,0 +1,12 @@
+[
+  {
+    "iid": 162,
+    "state": "merged",
+    "web_url": "https://gitlab.example.com/acme/project/-/merge_requests/162"
+  },
+  {
+    "iid": 163,
+    "state": "merged",
+    "web_url": "https://gitlab.example.com/acme/project/-/merge_requests/163"
+  }
+]

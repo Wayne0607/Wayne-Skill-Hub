@@ -1,0 +1,23 @@
+{
+  "iid": 159,
+  "project_id": 1,
+  "state": "closed",
+  "title": "[Frontend] 修复示例图表中心文字偏移",
+  "web_url": "https://gitlab.example.com/acme/project/-/work_items/159",
+  "references": {
+    "short": "#159",
+    "full": "acme/project#159"
+  },
+  "labels": [],
+  "closed_at": "2026-07-23T07:01:13.204Z",
+  "author": {
+    "username": "alice",
+    "name": "Alice Example"
+  },
+  "assignees": [
+    {
+      "username": "alice",
+      "name": "Alice Example"
+    }
+  ]
+}

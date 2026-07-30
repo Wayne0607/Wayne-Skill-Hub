@@ -1,0 +1,4 @@
+interface:
+  display_name: "TCode Handoff Mate"
+  short_description: "Identity-aware Issue and MR coordination"
+  default_prompt: "Use $tcode-handoff-package-mate to resolve the collaborator, explain the responsibility map, and coordinate one primary Issue with assigned owner-specific Issues and MRs."

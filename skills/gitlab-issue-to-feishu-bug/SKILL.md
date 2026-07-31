@@ -1,6 +1,6 @@
 ---
 name: gitlab-issue-to-feishu-bug
-description: 将 GitLab Issue 登记到用户指定的飞书 Bug 表，并为 Bug、需求、模块、MR、版本或用户描述生成飞书测试用例候选。支持 Bug+用例、仅 Bug、仅用例、覆盖补齐，多模块、用户字段覆盖与留空、实时 Schema 校验、查重、预览和确认后写入。用户说“把 issue 登记到飞书”“同步 Bug 管理”“为这个 Bug 生成测试用例”“补测试用例”“创建独立测试用例”或提供 GitLab Issue URL 要求登记时使用。
+description: 将 GitLab Issue 登记到用户指定的飞书 Bug 表，并为 Bug、需求、模块、MR、版本或用户描述生成飞书测试用例候选。支持 Bug+用例、仅 Bug、仅用例、覆盖补齐、多模块识别与单选冲突提示、用户字段覆盖与留空、实时 Schema 校验、查重、预览和确认后写入。用户说“把 issue 登记到飞书”“同步 Bug 管理”“为这个 Bug 生成测试用例”“补测试用例”“创建独立测试用例”或提供 GitLab Issue URL 要求登记时使用。
 ---
 
 # GitLab Issue 与飞书测试资产

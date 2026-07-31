@@ -159,8 +159,11 @@ function validateProfile(profile) {
   }
 
   const moduleField = fieldsBySemantic.get("module");
-  if (moduleField.type !== "select" || moduleField.multiple !== true) {
-    throw new Error("Profile module field must be a multiple select");
+  if (
+    moduleField.type !== "select" ||
+    typeof moduleField.multiple !== "boolean"
+  ) {
+    throw new Error("Profile module field must be a select with multiple set");
   }
   const moduleOptions = moduleField.options ?? [];
   const aliases = profile.module_aliases ?? {};
@@ -259,7 +262,15 @@ function parseModuleOverride(profile, value) {
   if (invalid.length > 0) {
     throw new Error(`bug模块 contains invalid values ${JSON.stringify(invalid)}`);
   }
-  return [...new Set(values)];
+  const unique = [...new Set(values)];
+  if (unique.length === 0) {
+    throw new Error("bug模块 requires at least one value");
+  }
+  const field = profileField(profile, "module");
+  if (field.multiple === false && unique.length > 1) {
+    throw new Error("bug模块 is single-select; provide exactly one value");
+  }
+  return field.multiple ? unique : unique[0];
 }
 
 function labelsFrom(issue) {
@@ -553,7 +564,19 @@ function relatedMrUrls(payload, issueIdentity) {
   return [...new Set(urls)];
 }
 
-function validateBaseSchema(profile, response, activeSemantics = null) {
+function candidateSelectValues(value) {
+  if (value === undefined || value === null || value === "") {
+    return [];
+  }
+  return Array.isArray(value) ? value : [value];
+}
+
+function validateBaseSchema(
+  profile,
+  response,
+  activeSemantics = null,
+  semanticValues = null,
+) {
   if (!isObject(response)) {
     return { ok: false, differences: ["Base field response is not an object"] };
   }
@@ -592,17 +615,21 @@ function validateBaseSchema(profile, response, activeSemantics = null) {
         `${expected.name}: multiple ${JSON.stringify(actual.multiple)} != ${JSON.stringify(expected.multiple)}`,
       );
     }
-    if (expected.options) {
-      const actualOptions = Array.isArray(actual.options)
-        ? actual.options
-            .map((option) => option?.name)
-            .filter((name) => typeof name === "string")
-            .sort()
-        : [];
-      const expectedOptions = [...expected.options].sort();
-      if (JSON.stringify(actualOptions) !== JSON.stringify(expectedOptions)) {
+    if (expected.type === "select" && semanticValues?.has(expected.semantic)) {
+      const actualOptions = new Set(
+        (actual.options ?? [])
+          .map((option) => option?.name)
+          .filter((name) => typeof name === "string" && name.trim() !== ""),
+      );
+      const pendingValues = candidateSelectValues(
+        semanticValues.get(expected.semantic),
+      );
+      const unsupported = pendingValues.filter(
+        (value) => typeof value !== "string" || !actualOptions.has(value),
+      );
+      if (unsupported.length > 0) {
         differences.push(
-          `${expected.name}: options ${JSON.stringify(actualOptions)} != ${JSON.stringify(expectedOptions)}`,
+          `${expected.name}: pending values ${JSON.stringify(unsupported)} are not accepted by live options`,
         );
       }
     }
@@ -716,18 +743,43 @@ function buildPreview(options) {
 
   const labels = labelsFrom(issue);
   const moduleInference = inferModules(issue, profile);
+  const moduleField = profileField(profile, "module");
   if (options.module !== undefined) {
     setOverride("module", parseModuleOverride(profile, options.module));
   } else if (
     !omittedSemantics.has("module") &&
-    moduleInference.values.length > 0
+    moduleInference.values.length === 1
+  ) {
+    const moduleValue = moduleField.multiple
+      ? moduleInference.values
+      : moduleInference.values[0];
+    set("module", moduleValue);
+    inferences.push({
+      field: moduleField.name,
+      value: moduleValue,
+      source: moduleInference.source,
+      confidence: "high",
+    });
+  } else if (
+    !omittedSemantics.has("module") &&
+    moduleInference.values.length > 1 &&
+    moduleField.multiple
   ) {
     set("module", moduleInference.values);
     inferences.push({
-      field: profileField(profile, "module").name,
+      field: moduleField.name,
       value: moduleInference.values,
       source: moduleInference.source,
       confidence: "high",
+    });
+  } else if (
+    !omittedSemantics.has("module") &&
+    moduleInference.values.length > 1
+  ) {
+    optionalIssues.push({
+      field: moduleField.name,
+      reason: "Issue 中识别出多个模块，实时字段为单选；字段保持为空",
+      candidates: moduleInference.values,
     });
   } else if (!omittedSemantics.has("module")) {
     optionalIssues.push({
@@ -911,6 +963,7 @@ function buildPreview(options) {
         profile,
         loadJson(options.baseFieldsJson),
         activeSemantics,
+        semanticValues,
       )
     : { ok: false, differences: ["live Base fields were not provided"] };
   if (!schemaValidation.ok) {

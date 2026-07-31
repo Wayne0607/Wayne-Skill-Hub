@@ -27,7 +27,7 @@
           "刷新后会话保持有效",
           "受保护接口返回当前用户"
         ],
-        "automation_status": "待评估"
+        "automation_status": "待实现"
       }
     }
   ]

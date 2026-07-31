@@ -83,7 +83,7 @@ test("真实 #159 保留 Issue 状态、模块和缺失元数据", () => {
 
   assert.equal(preview.fields["BugID(对应issue)"], "acme/project#159");
   assert.equal(preview.fields["状态"], "已关闭");
-  assert.deepEqual(preview.fields["bug模块"], ["Tcode前端"]);
+  assert.equal(preview.fields["bug模块"], "Tcode前端");
   assert.equal(preview.fields["优先级"], undefined);
   assert.equal(preview.fields["严重程度"], undefined);
   assert.equal(preview.source.related_mrs.length, 2);
@@ -119,15 +119,24 @@ test("状态、优先级和严重程度全部由 Issue 推导", () => {
   });
 });
 
-test("模块汇总标题前缀和标签并以多选数组输出", () => {
+test("单选模块只写唯一候选，多候选留空并提示", () => {
+  withMappedIssue(
+    { title: "[Frontend] 单模块问题", labels: ["P1"] },
+    (mappedOptions) => {
+      const preview = buildPreview(mappedOptions);
+      assert.equal(preview.fields["bug模块"], "Tcode前端");
+      assert.equal(preview.update_fields["bug模块"], "Tcode前端");
+    },
+  );
+
   withMappedIssue({}, (mappedOptions) => {
     const preview = buildPreview(mappedOptions);
-    assert.deepEqual(preview.fields["bug模块"], [
-      "Tcode平台后端",
-      "Tcode前端",
-      "TcodeAudit",
-    ]);
-    assert.deepEqual(preview.update_fields["bug模块"], [
+    assert.equal(preview.fields["bug模块"], undefined);
+    assert.equal(preview.update_fields["bug模块"], undefined);
+    const issue = preview.optional_issues.find(
+      (item) => item.field === "bug模块",
+    );
+    assert.deepEqual(issue.candidates, [
       "Tcode平台后端",
       "Tcode前端",
       "TcodeAudit",
@@ -199,13 +208,23 @@ test("缺失与冲突字段保持为空，用户命令可以覆盖默认映射",
       status: "修复中",
       priority: "P0",
       severity: "轻微",
-      module: "TcodeSCA,TcodeAudit",
+      module: "TcodeSCA",
     });
     assert.equal(preview.fields["状态"], "修复中");
     assert.equal(preview.fields["优先级"], "P0");
     assert.equal(preview.fields["严重程度"], "轻微");
-    assert.deepEqual(preview.fields["bug模块"], ["TcodeSCA", "TcodeAudit"]);
+    assert.equal(preview.fields["bug模块"], "TcodeSCA");
     assert.equal(preview.overrides.length, 5);
+  });
+  withMappedIssue({ labels: ["frontend", "P1"] }, (mappedOptions) => {
+    assert.throws(
+      () =>
+        buildPreview({
+          ...mappedOptions,
+          module: "TcodeSCA,TcodeAudit",
+        }),
+      /bug模块 is single-select/,
+    );
   });
 });
 
@@ -265,20 +284,66 @@ test("飞书链接运行时解析，不绑定固定 Base 标题", () => {
   });
 });
 
-test("目标表的 bug模块 不是多选时阻断写入", () => {
+test("目标表的 bug模块 变成多选时阻断写入", () => {
   const response = JSON.parse(fs.readFileSync(BASE_FIELDS, "utf8"));
-  response.data.fields.find((field) => field.name === "bug模块").multiple = false;
+  response.data.fields.find((field) => field.name === "bug模块").multiple = true;
 
   withJsonFixture(response, (baseFieldsJson) => {
-    withMappedIssue({}, (mappedOptions) => {
-      const preview = buildPreview({ ...mappedOptions, baseFieldsJson });
-      assert.equal(preview.schema_validation.ok, false);
-      assert.equal(preview.ready_for_confirmation, false);
-      assert.match(
-        preview.schema_validation.differences.join("\n"),
-        /bug模块: multiple false != true/,
-      );
-    });
+    withMappedIssue(
+      { title: "[Frontend] 单模块问题", labels: ["P1"] },
+      (mappedOptions) => {
+        const preview = buildPreview({ ...mappedOptions, baseFieldsJson });
+        assert.equal(preview.schema_validation.ok, false);
+        assert.equal(preview.ready_for_confirmation, false);
+        assert.match(
+          preview.schema_validation.differences.join("\n"),
+          /bug模块: multiple true != false/,
+        );
+      },
+    );
+  });
+});
+
+test("实时选项多出空白或额外值时保留合法 P1", () => {
+  const response = JSON.parse(fs.readFileSync(BASE_FIELDS, "utf8"));
+  const priority = response.data.fields.find(
+    (field) => field.name === "优先级",
+  );
+  priority.options.push({ name: "" }, { name: "未来选项" });
+
+  withJsonFixture(response, (baseFieldsJson) => {
+    withMappedIssue(
+      { title: "[Frontend] P1 问题", labels: ["P1"] },
+      (mappedOptions) => {
+        const preview = buildPreview({ ...mappedOptions, baseFieldsJson });
+        assert.equal(preview.fields["优先级"], "P1");
+        assert.equal(preview.schema_validation.ok, true);
+        assert.equal(preview.ready_for_confirmation, true);
+      },
+    );
+  });
+});
+
+test("实时选项不接受 P1 时保留候选并阻断确认", () => {
+  const response = JSON.parse(fs.readFileSync(BASE_FIELDS, "utf8"));
+  const priority = response.data.fields.find(
+    (field) => field.name === "优先级",
+  );
+  priority.options = priority.options.filter((option) => option.name !== "P1");
+
+  withJsonFixture(response, (baseFieldsJson) => {
+    withMappedIssue(
+      { title: "[Frontend] P1 问题", labels: ["P1"] },
+      (mappedOptions) => {
+        const preview = buildPreview({ ...mappedOptions, baseFieldsJson });
+        assert.equal(preview.fields["优先级"], "P1");
+        assert.equal(preview.schema_validation.ok, false);
+        assert.match(
+          preview.schema_validation.differences.join("\n"),
+          /优先级: pending values \["P1"\] are not accepted/,
+        );
+      },
+    );
   });
 });
 
@@ -349,16 +414,21 @@ test("用户显式指定的合法 PR URL 优先于关联 MR 推导", () => {
   );
 });
 
-test("profile 不含必填业务语义并校验模块多选与映射", () => {
+test("profile 不含必填业务语义并校验模块单选与映射", () => {
   const original = JSON.parse(fs.readFileSync(PROFILE, "utf8"));
   assert.deepEqual(original.required_semantics, []);
+  assert.equal(
+    original.fields.find((field) => field.semantic === "module").multiple,
+    false,
+  );
 
-  const singleModule = structuredClone(original);
-  singleModule.fields.find((field) => field.semantic === "module").multiple = false;
-  withJsonFixture(singleModule, (profilePath) => {
+  const invalidModule = structuredClone(original);
+  invalidModule.fields.find((field) => field.semantic === "module").multiple =
+    "false";
+  withJsonFixture(invalidModule, (profilePath) => {
     assert.throws(
       () => buildPreview(options({ profile: profilePath })),
-      /module field must be a multiple select/,
+      /module field must be a select with multiple set/,
     );
   });
 

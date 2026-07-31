@@ -93,7 +93,7 @@
       "semantic": "module",
       "name": "bug模块",
       "type": "select",
-      "multiple": true,
+      "multiple": false,
       "options": [
         "Tcode平台后端",
         "Tcode前端",

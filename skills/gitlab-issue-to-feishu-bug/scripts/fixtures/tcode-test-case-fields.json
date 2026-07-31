@@ -4,7 +4,15 @@
     "fields": [
       { "name": "用例编号", "type": "text" },
       { "name": "前置条件", "type": "text" },
-      { "name": "人工审核状态", "type": "text" },
+      {
+        "name": "人工审核状态",
+        "type": "select",
+        "multiple": false,
+        "options": [
+          { "name": "待审核" },
+          { "name": "已审核" }
+        ]
+      },
       { "name": "创建时间", "type": "datetime" },
       { "name": "测试步骤", "type": "text" },
       { "name": "审核人", "type": "text" },
@@ -68,7 +76,15 @@
           { "name": "测试人员" }
         ]
       },
-      { "name": "自动化状态", "type": "text" },
+      {
+        "name": "自动化状态",
+        "type": "select",
+        "multiple": false,
+        "options": [
+          { "name": "待实现" },
+          { "name": "已实现" }
+        ]
+      },
       { "name": "测试项目版本(版本tag)", "type": "text" },
       { "name": "执行环境", "type": "text" },
       { "name": "执行角色", "type": "text" },

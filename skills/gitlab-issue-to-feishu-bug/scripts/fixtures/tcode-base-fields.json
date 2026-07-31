@@ -50,7 +50,7 @@
       {
         "name": "bug模块",
         "type": "select",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "name": "Tcode平台后端"
@@ -93,6 +93,9 @@
           },
           {
             "name": "P2"
+          },
+          {
+            "name": ""
           }
         ]
       },

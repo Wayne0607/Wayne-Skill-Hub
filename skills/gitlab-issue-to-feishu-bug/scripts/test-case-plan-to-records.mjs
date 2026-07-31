@@ -333,7 +333,23 @@ function sourceDefaults(source) {
   };
 }
 
-function validateBaseSchema(profile, response, activeSemantics) {
+function candidateSelectValues(valuesBySemantic, semantic) {
+  const values = valuesBySemantic?.get(semantic);
+  if (values === undefined || values === null) {
+    return [];
+  }
+  if (values instanceof Set) {
+    return [...values];
+  }
+  return Array.isArray(values) ? values : [values];
+}
+
+function validateBaseSchema(
+  profile,
+  response,
+  activeSemantics,
+  valuesBySemantic = null,
+) {
   if (!isObject(response) || response.ok === false) {
     return { ok: false, differences: ["Base field response is unavailable"] };
   }
@@ -367,16 +383,22 @@ function validateBaseSchema(profile, response, activeSemantics) {
         `${expected.name}: multiple ${JSON.stringify(actual.multiple)} != ${JSON.stringify(expected.multiple)}`,
       );
     }
-    if (expected.options) {
+    if (expected.type === "select") {
       const actualOptions = new Set(
         (actual.options ?? [])
           .map((option) => option?.name)
-          .filter((name) => typeof name === "string"),
+          .filter((name) => typeof name === "string" && name.trim() !== ""),
       );
-      const missing = expected.options.filter((option) => !actualOptions.has(option));
-      if (missing.length > 0) {
+      const pendingValues = candidateSelectValues(
+        valuesBySemantic,
+        semantic,
+      );
+      const unsupported = pendingValues.filter(
+        (value) => typeof value !== "string" || !actualOptions.has(value),
+      );
+      if (unsupported.length > 0) {
         differences.push(
-          `${expected.name}: missing options ${JSON.stringify(missing)}`,
+          `${expected.name}: pending values ${JSON.stringify(unsupported)} are not accepted by live options`,
         );
       }
     }
@@ -402,6 +424,7 @@ function buildPreview(options) {
   }
 
   const activeSemantics = new Set();
+  const activeSelectValues = new Map();
   const optionalIssues = [];
   const cases = plan.cases.map((testCase, index) => {
     const omissions = new Set([
@@ -432,6 +455,15 @@ function buildPreview(options) {
       if (normalized !== null) {
         semanticValues.set(semantic, normalized);
         activeSemantics.add(semantic);
+        if (profileField(profile, semantic).type === "select") {
+          const values = activeSelectValues.get(semantic) ?? new Set();
+          for (const item of Array.isArray(normalized)
+            ? normalized
+            : [normalized]) {
+            values.add(item);
+          }
+          activeSelectValues.set(semantic, values);
+        }
       }
     }
     const businessKey = semanticValues.get(profile.business_key_semantic) ?? null;
@@ -488,6 +520,7 @@ function buildPreview(options) {
         profile,
         loadJson(options.baseFieldsJson),
         activeSemantics,
+        activeSelectValues,
       )
     : { ok: false, differences: ["live Base fields were not provided"] };
   const targetDifferences = [];

@@ -29,7 +29,7 @@
           "相邻布局不被撑开"
         ],
         "scenario_tags": "回归；版本展示",
-        "automation_status": "待评估"
+        "automation_status": "待实现"
       },
       "generation_basis": [
         "GitLab Issue 描述",
@@ -46,7 +46,7 @@
           "查看正常长度版本号"
         ],
         "expected": "版本号完整显示且无多余省略号",
-        "automation_status": "待评估"
+        "automation_status": "待实现"
       }
     }
   ]

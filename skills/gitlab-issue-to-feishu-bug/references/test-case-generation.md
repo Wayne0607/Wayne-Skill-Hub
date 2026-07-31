@@ -40,7 +40,7 @@ Bug 来源可在 `source.bug_id` 中写入 GitLab 完整引用，例如 `group/p
 - `created_at` 使用 `YYYY-MM-DD HH:mm:ss`，只有用户要求登记创建时间时填写。
 - `submitter` 默认使用当前飞书账号的名称和 `openId`；用户可以覆盖或留空。
 - `status` 默认 `待开始`，`review_status` 默认 `待审核`。
-- `automation_status` 默认 `待评估`。
+- `automation_status` 默认 `待实现`。
 - `automation_script_path` 只登记已经存在或用户明确指定的路径。
 - `module` 可以包含多个受影响模块，使用可读文本表达。
 - `scenario_tags` 使用便于筛选的短标签，例如 `版本展示, 长文本, Tooltip`。

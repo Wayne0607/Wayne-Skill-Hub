@@ -8,7 +8,6 @@ import { fileURLToPath } from "node:url";
 import {
   buildPreview,
   parseArgs,
-  validateBaseSchema,
   writeOutputs,
 } from "./test-case-plan-to-records.mjs";
 
@@ -71,6 +70,7 @@ test("Bug 来源生成多条关联用例并继承默认字段", () => {
   assert.equal(preview.cases[0].fields["优先级"], "P1");
   assert.equal(preview.cases[0].fields["状态"], "待开始");
   assert.equal(preview.cases[0].fields["人工审核状态"], "待审核");
+  assert.equal(preview.cases[0].fields["自动化状态"], "待实现");
   assert.deepEqual(preview.cases[0].fields["提交人"], [
     { id: "ou_12345678" },
   ]);
@@ -194,12 +194,59 @@ test("实时 Schema 仅校验实际准备写入的字段", () => {
   });
 });
 
-test("Profile 选项只要求实时表包含所需子集", () => {
-  const profile = readJson(PROFILE);
+test("实时选项多出空白或额外值时保留合法 P1", () => {
+  const preview = buildPreview(options(BUG_PLAN));
+  assert.equal(preview.cases[0].fields["优先级"], "P1");
+  assert.equal(preview.schema_validation.ok, true);
+  assert.equal(preview.ready_for_confirmation, true);
+});
+
+test("实时选项不接受 P1 时保留候选并阻断确认", () => {
   const response = readJson(BASE_FIELDS);
-  const active = new Set(["priority"]);
-  const result = validateBaseSchema(profile, response, active);
-  assert.equal(result.ok, true);
+  const priority = response.data.fields.find(
+    (field) => field.name === "优先级",
+  );
+  priority.options = priority.options.filter((option) => option.name !== "P1");
+
+  withJson(response, (baseFieldsJson) => {
+    const preview = buildPreview(options(BUG_PLAN, { baseFieldsJson }));
+    assert.equal(preview.cases[0].fields["优先级"], "P1");
+    assert.equal(preview.schema_validation.ok, false);
+    assert.match(
+      preview.schema_validation.differences.join("\n"),
+      /优先级: pending values \["P1"\] are not accepted/,
+    );
+  });
+});
+
+test("测试用例 profile 与实时审核和自动化单选一致", () => {
+  const profile = readJson(PROFILE);
+  const review = profile.fields.find(
+    (field) => field.semantic === "review_status",
+  );
+  const automation = profile.fields.find(
+    (field) => field.semantic === "automation_status",
+  );
+  assert.deepEqual(
+    { type: review.type, multiple: review.multiple, options: review.options },
+    {
+      type: "select",
+      multiple: false,
+      options: ["待审核", "已审核"],
+    },
+  );
+  assert.deepEqual(
+    {
+      type: automation.type,
+      multiple: automation.multiple,
+      options: automation.options,
+    },
+    {
+      type: "select",
+      multiple: false,
+      options: ["待实现", "已实现"],
+    },
+  );
 });
 
 test("目标表不匹配时不生成可确认候选", () => {
@@ -275,9 +322,18 @@ test("非临时目录输出被拒绝", () => {
 });
 
 test("临时目录中的链接不能把输出引到临时目录外", (context) => {
-  const outside = fs.mkdtempSync(
-    path.join(path.dirname(os.tmpdir()), "test-case-output-real-"),
-  );
+  let outside;
+  try {
+    outside = fs.mkdtempSync(
+      path.join(path.dirname(os.tmpdir()), "test-case-output-real-"),
+    );
+  } catch (error) {
+    if (["EPERM", "EACCES", "ENOTSUP"].includes(error.code)) {
+      context.skip(`outside-temp test directory unavailable: ${error.code}`);
+      return;
+    }
+    throw error;
+  }
   const link = path.join(
     os.tmpdir(),
     `test-case-output-link-${Date.now()}-${Math.random().toString(16).slice(2)}`,

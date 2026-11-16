@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "task_id": "example-retry-policy",
+  "revision": 2,
+  "root_session_id": "codex:example-root",
+  "project_path": "/workspace/example-app",
+  "worker": {
+    "native_agent_id": null,
+    "obelisk_agent_id": null,
+    "assigned_scope": ["src/retry.mjs", "test/retry.test.mjs"]
+  },
+  "objective": "让单次请求超时遵循已确认的重试策略。",
+  "plan": [
+    "先核实当前重试契约和实现，再修改请求超时的处理。",
+    "验证超时、成功及重试次数边界，并回报未验证事项。"
+  ],
+  "decisions": [
+    {
+      "id": "D1",
+      "status": "rejected",
+      "statement": "把所有请求错误都自动重试。",
+      "source_message_uuid": "codex:example-root:000010"
+    },
+    {
+      "id": "D2",
+      "status": "confirmed",
+      "statement": "只对契约允许的可重试超时应用重试上限。",
+      "source_message_uuid": "codex:example-root:000012",
+      "replaces": "D1"
+    }
+  ],
+  "constraints": ["保留现有公开接口。", "只修改分配范围；发现契约冲突先回报。"],
+  "acceptance": [
+    "允许重试的超时遵循上限，不允许重试的错误保持原行为。",
+    "报告实际执行的验证命令、环境和结果。"
+  ],
+  "retrieval": {
+    "anchors": ["codex:example-root:000010", "codex:example-root:000012"],
+    "queries": ["retry timeout"]
+  },
+  "artifacts": [
+    {
+      "path": "docs/retry-contract.md",
+      "observed_revision": "fictional-example-revision",
+      "reason": "核实允许重试的错误类别；执行时以当前实际文件为准。"
+    }
+  ],
+  "open_questions": [],
+  "example_notice": "全部标识、路径和需求均为虚构示例。使用时替换为实际任务事实。"
+}

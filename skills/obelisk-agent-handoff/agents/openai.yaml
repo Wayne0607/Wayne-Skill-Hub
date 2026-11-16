@@ -1,0 +1,4 @@
+interface:
+  display_name: "Obelisk Agent Handoff"
+  short_description: "Sourced context handoff and worker reconciliation"
+  default_prompt: "Use $obelisk-agent-handoff to prepare sourced context for the assigned subagent and reconcile its report with scoped Obelisk evidence."

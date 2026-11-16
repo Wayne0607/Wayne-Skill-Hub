@@ -2,13 +2,17 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { threadId, messageId, sourceReference } from "./identity.mjs";
 
-const MODES = new Set(["locate", "hydrate", "audit"]);
+const MODES = new Set(["locate", "hydrate", "audit", "verify", "receipt", "read"]);
 const COMMON = ["mode", "project_path", "root_session_id", "limit", "excerpt_chars", "max_chars"];
 const FIELDS = {
-  locate: [...COMMON, "user_phrase"],
+  locate: [...COMMON, "user_phrase", "task_marker"],
   hydrate: [...COMMON, "anchors", "queries"],
   audit: [...COMMON, "agent_id", "checkpoint"],
+  verify: [...COMMON, "references"],
+  receipt: [...COMMON, "agent_id", "uuid", "tool_use_id"],
+  read: [...COMMON, "agent_id", "uuid"],
 };
 
 function object(value, label) {
@@ -42,7 +46,7 @@ function list(value, label, maxItems, maxLength) {
 
 export function validateRequest(input) {
   object(input, "request");
-  if (!MODES.has(input.mode)) throw new TypeError("mode must be locate, hydrate, or audit");
+  if (!MODES.has(input.mode)) throw new TypeError("Unknown query mode");
   for (const key of Object.keys(input)) {
     if (!FIELDS[input.mode].includes(key)) throw new TypeError(`Unknown request field: ${key}`);
   }
@@ -58,28 +62,44 @@ export function validateRequest(input) {
     max_chars: integer(input.max_chars, "max_chars", 12000, 1000, 24000),
   };
   if (input.root_session_id !== undefined) {
-    result.root_session_id = text(input.root_session_id, "root_session_id");
-    if (!result.root_session_id.startsWith("codex:")) {
-      throw new TypeError("root_session_id must be a canonical codex: session ID");
-    }
+    result.root_session_id = threadId(input.root_session_id, "root_session_id");
   } else if (input.mode !== "locate") {
     throw new TypeError("root_session_id is required for hydrate and audit");
   }
   if (input.mode === "locate" && input.user_phrase !== undefined) {
     result.user_phrase = text(input.user_phrase, "user_phrase", 500);
   }
+  if (input.mode === "locate" && input.task_marker !== undefined) result.task_marker = text(input.task_marker, "task_marker", 200);
   if (input.mode === "hydrate") {
     result.anchors = list(input.anchors, "anchors", 12, 512);
+    for (const uuid of result.anchors) messageId(uuid, "anchor UUID");
     result.queries = list(input.queries, "queries", 4, 160);
     if (!result.anchors.length && !result.queries.length) {
       throw new TypeError("hydrate requires at least one anchor or query");
     }
   }
-  if (input.mode === "audit") {
+  if (["audit", "receipt", "read"].includes(input.mode)) {
     if (!Object.hasOwn(input, "agent_id")) {
       throw new TypeError("audit requires agent_id; use explicit null for root updates");
     }
-    result.agent_id = input.agent_id === null ? null : text(input.agent_id, "agent_id");
+    result.agent_id = input.agent_id === null ? null : threadId(input.agent_id, "agent_id");
+  }
+  if (["receipt", "read"].includes(input.mode)) {
+    result.uuid = messageId(input.uuid).uuid;
+    if (input.mode === "receipt" && input.tool_use_id !== undefined) {
+      result.tool_use_id = text(input.tool_use_id, "tool_use_id");
+      if (!result.tool_use_id.startsWith(`${messageId(input.uuid).thread_id}:`)) {
+        throw new TypeError("tool_use_id must carry the full message thread prefix");
+      }
+    }
+  }
+  if (input.mode === "verify") {
+    if (!Array.isArray(input.references) || input.references.length < 1 || input.references.length > 40) {
+      throw new TypeError("verify requires 1–40 explicit source references");
+    }
+    result.references = input.references.map((ref) => sourceReference(ref, result.root_session_id));
+  }
+  if (input.mode === "audit") {
     if (input.checkpoint !== undefined) {
       object(input.checkpoint, "checkpoint");
       const cp = input.checkpoint;
@@ -100,7 +120,7 @@ export function validateRequest(input) {
             !Number.isFinite(Date.parse(timestamp))) {
           throw new TypeError("checkpoint timestamp must be a UTC ISO timestamp");
         }
-        cursor = { timestamp, uuid: text(cp.cursor.uuid, "checkpoint.cursor.uuid") };
+        cursor = { timestamp, uuid: messageId(cp.cursor.uuid, "checkpoint.cursor.uuid").uuid };
       }
       result.checkpoint = { root_session_id: cp.root_session_id, agent_id: cp.agent_id, cursor };
     }
@@ -178,12 +198,38 @@ export function collectContext(request, api) {
       description: clip(row.description, Math.min(200, request.excerpt_chars)),
     }));
     output.has_more_agents = agents.length > request.limit;
+    if (request.task_marker) {
+      output.marker_matches = api.sql(`SELECT a.agent_id,a.session_id AS root_session_id,
+        MIN(m.uuid) AS marker_message_uuid FROM subagents a JOIN messages m
+        ON m.agent_id=a.agent_id AND m.session_id=a.session_id
+        WHERE a.session_id=? AND m.role='assistant' AND m.content_type='text'
+        AND COALESCE(m.is_meta,0)=0 AND COALESCE(m.visibility,'visible')='visible'
+        AND instr(m.text,?)>0 GROUP BY a.agent_id,a.session_id LIMIT 3`, id, request.task_marker);
+      output.worker_binding_status = output.marker_matches.length === 1 ? "resolved" :
+        output.marker_matches.length ? "ambiguous" : "unresolved";
+    }
     output.status = "resolved";
     return output;
   }
 
   output.session = sessionView(exactSession(request.root_session_id));
-  const agentId = request.mode === "audit" ? request.agent_id : null;
+  const reference = (row) => ({ uuid: row.uuid, root_session_id: row.session_id,
+    agent_id: row.agent_id ?? null, role: row.role, content_type: row.content_type });
+  if (request.mode === "verify") {
+    output.references = request.references.map((ref) => {
+      const row = api.messages(ref.uuid)?.anchor;
+      let status = "valid";
+      if (!row) status = "missing_or_not_visible";
+      else if (!visible(row)) status = "excluded_surface";
+      else if (!belongs(row, ref.agent_id)) status = "scope_mismatch";
+      else if (ref.content_type && row.content_type !== ref.content_type) status = "content_type_mismatch";
+      else if (ref.role && row.role !== ref.role) status = "role_mismatch";
+      return { expected: ref, status, actual: row && visible(row) ? reference(row) : null };
+    });
+    output.status = output.references.every((ref) => ref.status === "valid") ? "verified" : "invalid_references";
+    return output;
+  }
+  const agentId = ["audit", "receipt", "read"].includes(request.mode) ? request.agent_id : null;
   output.scope.agent_id = agentId;
   if (agentId !== null) {
     const binding = api.sql("SELECT agent_id FROM subagents WHERE session_id=? AND agent_id=? LIMIT 1",
@@ -194,6 +240,68 @@ export function collectContext(request, api) {
     WHERE session_id=? AND agent_id IS ? AND COALESCE(is_meta,0)=0
       AND COALESCE(visibility,'visible')='visible' AND content_type IN ('text','tool_use','tool_result')`,
     request.root_session_id, agentId)[0]?.timestamp ?? null;
+
+  if (["receipt", "read"].includes(request.mode)) {
+    const row = api.messages(request.uuid)?.anchor;
+    if (!visible(row) || !belongs(row, agentId)) throw new Error("Selected UUID is missing or outside the requested visible scope");
+    output.source_ref = reference(row);
+    if (request.mode === "read") {
+      if (row.content_type !== "text") throw new Error("read accepts text messages; use receipt for tool results");
+      output.text = row.text ?? "";
+      output.index_limit_reached = output.text.length >= 10000;
+      if (output.index_limit_reached && api.raw) {
+        const original = api.raw(row.uuid, { limit: 262144 });
+        if (original && !original.hasMore) {
+          try {
+            const record = JSON.parse(original.text);
+            const p = record.payload ?? {};
+            let expanded;
+            if (record.type === "response_item" && p.type === "message" && p.role === row.role) {
+              expanded = (p.content ?? []).filter((part) => ["input_text", "output_text", "text"].includes(part.type))
+                .map((part) => part.text ?? "").join("\n");
+            } else if (record.type === "event_msg" && p.type === (row.role === "user" ? "user_message" : "agent_message")) {
+              expanded = p.message ?? p.text;
+            }
+            if (typeof expanded === "string" && expanded.startsWith(output.text)) {
+              output.text = expanded;
+              output.index_limit_reached = false;
+            }
+          } catch { /* Keep the explicitly incomplete indexed text. */ }
+        }
+      }
+      output.status = output.index_limit_reached ? "partial" : "read";
+      return output;
+    }
+    if (!["tool_use", "tool_result"].includes(row.content_type)) throw new Error("receipt requires a tool message UUID");
+    const tools = api.sql(`SELECT tc.id,tc.message_uuid AS call_message_uuid,tc.name,
+      tr.content AS indexed_content,tr.is_error FROM tool_calls tc LEFT JOIN tool_results tr
+      ON tr.tool_use_id=tc.id AND tr.session_id=tc.session_id
+      WHERE tc.session_id=? AND (tc.message_uuid=? OR tr.message_uuid=?) ORDER BY tc.id LIMIT 40`,
+      request.root_session_id, row.uuid, row.uuid);
+    const selected = request.tool_use_id ? tools.filter((tool) => tool.id === request.tool_use_id) : tools;
+    if (selected.length !== 1) {
+      output.status = "partial";
+      output.gap = selected.length ? "multiple_tools_select_tool_use_id" : "tool_binding_unavailable";
+      output.tool_ids = tools.map((tool) => tool.id);
+      return output;
+    }
+    const tool = selected[0];
+    const call = api.messages(tool.call_message_uuid)?.anchor;
+    if (!visible(call) || !belongs(call, agentId)) throw new Error("Tool call binding is outside the requested scope");
+    const nativeThread = tool.call_message_uuid.split(":")[1];
+    const session = api.sessions({ sessionId: request.root_session_id, source: "codex", limit: 2 })
+      .find((entry) => entry.id === request.root_session_id);
+    const candidates = agentId === null ? (session.jsonl_path ? [session.jsonl_path] : []) :
+      api.sql("SELECT jsonl_path FROM index_state WHERE substr(jsonl_path,-length(?))=? LIMIT 3",
+        `${nativeThread}.jsonl`, `${nativeThread}.jsonl`).map((entry) => entry.jsonl_path);
+    output.status = "receipt_descriptor";
+    output.receipt = { call_message_uuid: tool.call_message_uuid, tool_use_id: tool.id,
+      native_thread_id: nativeThread, root_native_id: request.root_session_id.slice(6),
+      call_id: tool.id.slice(`codex:${nativeThread}:`.length), name: tool.name,
+      indexed_content: tool.indexed_content, provider_is_error: tool.is_error ?? null,
+      source_candidates: candidates };
+    return output;
+  }
 
   const toolsFor = (row) => {
     if (row.content_type === "text") return [];
@@ -213,6 +321,7 @@ export function collectContext(request, api) {
     const evidence = {
       uuid: row.uuid, timestamp: row.timestamp, agent_id: row.agent_id ?? null,
       role: row.role, content_type: row.content_type, origin,
+      source_ref: reference(row),
       ...clip(row.text, request.excerpt_chars),
     };
     if (row.content_type !== "text") {
@@ -301,7 +410,7 @@ export function buildQuery(input) {
   const request = validateRequest(input);
   return `// Generated scoped Obelisk query. Run with obelisk --query, not node.\n` +
     `const request = ${JSON.stringify(request)};\n` +
-    `return (${collectContext.toString()})(request, { overview, sessions, subagents, messages, search, sql });\n`;
+    `return (${collectContext.toString()})(request, { overview, sessions, subagents, messages, search, sql, raw: typeof raw === 'function' ? raw : null });\n`;
 }
 
 export function parseArgs(args) {

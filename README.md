@@ -32,7 +32,7 @@
 - Issue、PR/MR 类 Skill 需要当前仓库及已认证的 `gh` 或 `glab`。
 - `tcode-handoff-package-mate` 默认从项目的 `TEAM.md` 获取身份和常设职责。
 - `gitlab-issue-to-feishu-bug` 需要 Node.js、`glab`、`lark-cli`，并在写入前请求用户确认。当前测试用例自动化范围是登记状态与已有脚本路径。
-- `obelisk-agent-handoff` 需要本机 `obelisk` CLI（兼容 0.3.1 查询 API）和 Node.js 22.13+。可配合已有 `obelisk` Skill 使用；自带脚本也能独立生成限定范围的检索查询。实时协调仍使用代理原生消息工具。
+- `obelisk-agent-handoff` 需要本机 `obelisk` CLI（兼容 0.3.1 查询 API）和 Node.js 22.13+。固定 CLI 自动生成并执行检索，支持受限的 Codex 原始工具回执恢复和完整 UUID 归属校验。实时协调仍使用代理原生消息工具。
 
 ## 主子智能体上下文交接
 
@@ -41,7 +41,8 @@
 任务边界和验收条件，让它通过 Obelisk 补查相关依据，并在验收前核查子会话里的遗漏。
 ```
 
-该 Skill 包含会话定位、上下文补充和增量核查三个查询模式，以及来源标识、截断提示和游标隔离。
+该 Skill 提供 `locate`、`hydrate`、`read`、`receipt`、`verify`、`audit` 六个固定命令，弱模型无需手写 JS/SQL 查询。
+工具回执恢复先验证成功刷新的索引，再按文件、线程、call_id 与原始结果前缀核对；完整 UUID 校验同时检查存在性和会话/智能体归属。
 用法和 JSON 请求见 [上下文协议](skills/obelisk-agent-handoff/references/context-protocol.md)，
 完整交接结构见 [虚构示例](skills/obelisk-agent-handoff/examples/handoff.json)。真实对话、查询结果和检查点保留在本机，不提交到此仓库。
 
@@ -57,7 +58,7 @@ node skills/gitlab-issue-to-feishu-bug/scripts/test-case-plan-to-records.test.mj
 Obelisk 交接 Skill 的查询与边界测试（Node.js 22.13+，使用内置 SQLite）：
 
 ```bash
-node --test skills/obelisk-agent-handoff/scripts/context-query.test.mjs
+node --test skills/obelisk-agent-handoff/scripts/context-query.test.mjs skills/obelisk-agent-handoff/scripts/handoff.test.mjs
 ```
 
 仓库中的测试数据使用示例域名和虚拟账号，不包含真实 Token、人员 ID 或飞书 Base 链接。

@@ -2,7 +2,7 @@
   "schema_version": 1,
   "task_id": "example-retry-policy",
   "revision": 2,
-  "root_session_id": "codex:example-root",
+  "root_session_id": "codex:00000000-0000-4000-8000-000000000001",
   "project_path": "/workspace/example-app",
   "worker": {
     "native_agent_id": null,
@@ -19,13 +19,13 @@
       "id": "D1",
       "status": "rejected",
       "statement": "把所有请求错误都自动重试。",
-      "source_message_uuid": "codex:example-root:000010"
+      "source_message_uuid": "codex:00000000-0000-4000-8000-000000000001:000010"
     },
     {
       "id": "D2",
       "status": "confirmed",
       "statement": "只对契约允许的可重试超时应用重试上限。",
-      "source_message_uuid": "codex:example-root:000012",
+      "source_message_uuid": "codex:00000000-0000-4000-8000-000000000001:000012",
       "replaces": "D1"
     }
   ],
@@ -35,7 +35,7 @@
     "报告实际执行的验证命令、环境和结果。"
   ],
   "retrieval": {
-    "anchors": ["codex:example-root:000010", "codex:example-root:000012"],
+    "anchors": ["codex:00000000-0000-4000-8000-000000000001:000010", "codex:00000000-0000-4000-8000-000000000001:000012"],
     "queries": ["retry timeout"]
   },
   "artifacts": [

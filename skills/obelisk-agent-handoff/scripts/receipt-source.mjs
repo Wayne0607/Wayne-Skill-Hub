@@ -100,6 +100,8 @@ export function readableReceipt(content) {
       for (const [key, item] of Object.entries(value)) {
         if (!["thinking", "reasoning", "analysis"].includes(key)) visit(item, `${location}.${key}`, depth + 1);
       }
+    } else if (value === null || typeof value === "number" || typeof value === "boolean") {
+      visit(JSON.stringify(value), location, depth + 1);
     }
   };
   visit(content, "receipt", 0);

@@ -105,6 +105,14 @@ test("complete nested JSON text is decoded while reasoning keys are excluded", (
   assert.equal(textWindow(readable, { find: "absent" }).match_found, false);
 });
 
+test("readable receipts preserve numeric exit codes and boolean outcomes", () => {
+  const readable = readableReceipt(JSON.stringify({ exit_code: 1, success: false, passed: 42, pending: null }));
+  assert.match(readable, /exit_code\]\n1/);
+  assert.match(readable, /success\]\nfalse/);
+  assert.match(readable, /passed\]\n42/);
+  assert.match(readable, /pending\]\nnull/);
+});
+
 test("fixed CLI flags preserve literal input and reject abbreviations and unused flags", () => {
   const parsed = parseCommand(["hydrate", "--root", ROOT, "--project", "C:\\work folder\\example",
     "--anchor", UUID, "--query", "literal 'quote' $(not-a-command)"]);
